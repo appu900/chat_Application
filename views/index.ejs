@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>chatroom</title>
+  </head>
+  <body>
+    <h1>chat Room</h1>
+    <input id="start_chat_button" data-roomid="<%= id %>" type="hidden"/>
+    <input type="text" id="username" placeholder="username.." />
+    <input type="text" id="new_message" placeholder="type message..." />
+    <button id="btn">send message</button>
+    <ul id="message_list">
+        <% for(let i = 0; i<chats.length;i++){ %>
+            <li><%= chats[i].user %> : <%= chats[i].content %></li>
+        <%} %>
+    </ul>
+    <span id="typing">typing...</span>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+      let typing = false;
+      let typingId = null;
+
+      let startChatButton = document.getElementById("start_chat_button");
+      let button = document.getElementById("btn");
+      let inputMessage = document.getElementById("new_message");
+      let messageList = document.getElementById("message_list");
+      let username = document.getElementById("username");
+      let spanTyping = document.getElementById("typing");
+      spanTyping.style.display = "none";
+
+      button.onclick = function exec() {
+        socket.emit("message_send", {
+          message: inputMessage.value,
+          username:username.value,
+          roomid:startChatButton.getAttribute("data-roomid"),
+        });
+      };
+
+      inputMessage.addEventListener("keypress",function(e){
+          console.log(e.key);
+          typing = true;
+          socket.emit("typing",{
+            roomid:startChatButton.getAttribute("data-roomid"),
+            username:username.value,
+          });
+      })
+
+      socket.on("someone_typing",() =>{
+        spanTyping.style.display = "block";
+        typingId = setTimeout(() =>{
+           if(typing) typing = false;
+        },2000)
+      })
+
+         socket.emit("join_room",{
+            roomid:startChatButton.getAttribute("data-roomid"),
+         })
+      
+
+      socket.on("mesage_recived", (data) => {
+        let listMessages = document.createElement("li");
+        listMessages.innerText = `${data.username} : ${data.message}`;
+        messageList.appendChild(listMessages);
+      });
+    </script> 
+  </body>
+</html>
